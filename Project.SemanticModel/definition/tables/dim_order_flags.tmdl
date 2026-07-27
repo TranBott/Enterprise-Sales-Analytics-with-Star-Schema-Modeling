@@ -1,0 +1,67 @@
+table dim_order_flags
+	lineageTag: 98ac624a-f1f2-4118-ba3b-8242272aaf3c
+
+	column flag_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 4bf830ba-1d40-492e-bec8-3cd19108bbc6
+		summarizeBy: none
+		sourceColumn: flag_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel
+		dataType: string
+		lineageTag: 3013cdac-8ba5-4a50-a560-9301c76373a4
+		summarizeBy: none
+		sourceColumn: channel
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		lineageTag: 09d61093-0a86-4877-9a5d-9566920c566b
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column priority
+		dataType: string
+		lineageTag: b2f2b686-a9ad-42db-b24f-970a717720c3
+		summarizeBy: none
+		sourceColumn: priority
+
+		annotation SummarizationSetBy = Automatic
+
+	column channel_code
+		dataType: int64
+		formatString: 0
+		lineageTag: a92721c5-6859-4a0d-b887-a419a5d75d38
+		summarizeBy: none
+		sourceColumn: channel_code
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_order_flags = m
+		mode: import
+		queryGroup: 02_Dimensions
+		source =
+				let
+				    Source = orders,
+				    #"Removed Columns" = Table.RemoveColumns(Source,{"OrderID", "CustomerName", "CustomerCity", "RegionName", "ShipToCity", "BillToCity", "OrderDate", "OrderTotal"}),
+				    #"Removed Duplicates" = Table.Distinct(#"Removed Columns"),
+				    #"Added Index" = Table.AddIndexColumn(#"Removed Duplicates", "Index", 1, 1, Int64.Type),
+				    #"Renamed Columns" = Table.RenameColumns(#"Added Index",{{"Index", "flag_key"}}),
+				    #"Reordered Columns" = Table.ReorderColumns(#"Renamed Columns",{"flag_key", "OrderChannel", "Status", "Priority"}),
+				    #"Merged Queries" = Table.NestedJoin(#"Reordered Columns", {"OrderChannel"}, channels, {"channel_code"}, "channels", JoinKind.LeftOuter),
+				    #"Expanded channels" = Table.ExpandTableColumn(#"Merged Queries", "channels", {"channel_name"}, {"channels.channel_name"}),
+				    #"Reordered Columns1" = Table.ReorderColumns(#"Expanded channels",{"flag_key", "OrderChannel", "channels.channel_name", "Status", "Priority"}),
+				    #"Renamed Columns1" = Table.RenameColumns(#"Reordered Columns1",{{"channels.channel_name", "channel"}, {"Status", "status"}, {"Priority", "priority"}, {"OrderChannel", "channel_code"}})
+				in
+				    #"Renamed Columns1"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

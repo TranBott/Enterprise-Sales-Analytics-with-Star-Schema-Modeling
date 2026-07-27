@@ -1,0 +1,162 @@
+table fact_sales
+	lineageTag: f8a4d0e6-9791-48d9-b437-5605b25b5dad
+
+	column line_id
+		dataType: string
+		lineageTag: a61daa86-6021-4824-81cb-94ab7aaf6ffc
+		summarizeBy: none
+		sourceColumn: line_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column order_id
+		dataType: string
+		lineageTag: 84c86533-bfee-4895-b13a-eabd26636406
+		summarizeBy: none
+		sourceColumn: order_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 4ecfe052-9f3e-460c-b7e2-8a5bbfb9304c
+		summarizeBy: sum
+		sourceColumn: quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column price
+		dataType: double
+		lineageTag: c219d7f8-534f-4039-964a-61befdb1aeaa
+		summarizeBy: sum
+		sourceColumn: price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column cost
+		dataType: double
+		lineageTag: e6f3c00e-3b7b-47c2-9649-b488482b579d
+		summarizeBy: sum
+		sourceColumn: cost
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column discount
+		dataType: double
+		lineageTag: 1e7f5545-c425-44e0-b11e-ceadcd4363a6
+		summarizeBy: sum
+		sourceColumn: discount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column line_total
+		dataType: double
+		lineageTag: 7d341c03-bae3-4b70-9ab2-cee5f4e32b96
+		summarizeBy: sum
+		sourceColumn: line_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column order_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: b3af3034-e8cd-4f61-8e5e-840829f52d95
+		summarizeBy: none
+		sourceColumn: order_date
+
+		changedProperty = DataType
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isDateTimeCustom":true}
+
+	column customer_id
+		dataType: int64
+		formatString: 0
+		lineageTag: fde63257-b355-4dc6-b08e-223729e1099b
+		summarizeBy: none
+		sourceColumn: customer_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		formatString: 0
+		lineageTag: c3fd9c58-a046-4605-8ac7-572f2c3c6237
+		summarizeBy: none
+		sourceColumn: product_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column flag_key
+		dataType: int64
+		formatString: 0
+		lineageTag: c47766af-f577-49ef-b3c3-6c14709b6e97
+		summarizeBy: none
+		sourceColumn: flag_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column bill_to_city_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 0b928609-a8ee-4553-ae6b-e270d7295062
+		summarizeBy: sum
+		sourceColumn: bill_to_city_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column ship_to_city_key
+		dataType: int64
+		formatString: 0
+		lineageTag: a12c4b5d-bbb8-4d8e-b68a-95104cf3f505
+		summarizeBy: none
+		sourceColumn: ship_to_city_key
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_sales = m
+		mode: import
+		queryGroup: 03_Facts
+		source =
+				let
+				    Source = order_line_items,
+				    #"Merged Queries" = Table.NestedJoin(Source, {"OrderID"}, orders, {"OrderID"}, "orders", JoinKind.LeftOuter),
+				    #"Expanded orders" = Table.ExpandTableColumn(#"Merged Queries", "orders", {"CustomerName", "CustomerCity", "RegionName", "ShipToCity", "BillToCity", "OrderDate", "OrderChannel", "Status", "Priority", "OrderTotal"}, {"orders.CustomerName", "orders.CustomerCity", "orders.RegionName", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "orders.OrderChannel", "orders.Status", "orders.Priority", "orders.OrderTotal"}),
+				    #"Merged Queries1" = Table.NestedJoin(#"Expanded orders", {"orders.CustomerName"}, dim_customer, {"customer_name"}, "dim_customer", JoinKind.LeftOuter),
+				    #"Expanded dim_customer" = Table.ExpandTableColumn(#"Merged Queries1", "dim_customer", {"customer_id"}, {"dim_customer.customer_id"}),
+				    #"Reordered Columns" = Table.ReorderColumns(#"Expanded dim_customer",{"LineID", "OrderID", "ProductName", "dim_customer.customer_id", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal", "orders.CustomerName", "orders.CustomerCity", "orders.RegionName", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "orders.OrderChannel", "orders.Status", "orders.Priority", "orders.OrderTotal"}),
+				    #"Merged Queries2" = Table.NestedJoin(#"Reordered Columns", {"ProductName"}, dim_product, {"product_name"}, "dim_product", JoinKind.LeftOuter),
+				    #"Expanded dim_product" = Table.ExpandTableColumn(#"Merged Queries2", "dim_product", {"product_key"}, {"dim_product.product_key"}),
+				    #"Reordered Columns1" = Table.ReorderColumns(#"Expanded dim_product",{"LineID", "OrderID", "ProductName", "dim_product.product_key", "dim_customer.customer_id", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal", "orders.CustomerName", "orders.CustomerCity", "orders.RegionName", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "orders.OrderChannel", "orders.Status", "orders.Priority", "orders.OrderTotal"}),
+				    #"Merged Queries3" = Table.NestedJoin(#"Reordered Columns1", {"orders.OrderChannel", "orders.Status", "orders.Priority"}, dim_order_flags, {"channel_code", "status", "priority"}, "dim_order_flags", JoinKind.LeftOuter),
+				    #"Expanded dim_order_flags" = Table.ExpandTableColumn(#"Merged Queries3", "dim_order_flags", {"flag_key"}, {"dim_order_flags.flag_key"}),
+				    #"Reordered Columns2" = Table.ReorderColumns(#"Expanded dim_order_flags",{"LineID", "OrderID", "ProductName", "dim_product.product_key", "dim_customer.customer_id", "dim_order_flags.flag_key", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal", "orders.CustomerName", "orders.CustomerCity", "orders.RegionName", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "orders.OrderChannel", "orders.Status", "orders.Priority", "orders.OrderTotal"}),
+				    #"Removed Columns" = Table.RemoveColumns(#"Reordered Columns2",{"ProductName", "orders.CustomerName", "orders.CustomerCity", "orders.RegionName", "orders.OrderChannel", "orders.Status", "orders.Priority"}),
+				    #"Reordered Columns3" = Table.ReorderColumns(#"Removed Columns",{"LineID", "OrderID", "dim_product.product_key", "dim_customer.customer_id", "dim_order_flags.flag_key", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal", "orders.OrderTotal", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate"}),
+				    #"Removed Columns1" = Table.RemoveColumns(#"Reordered Columns3",{"orders.OrderTotal"}),
+				    #"Reordered Columns4" = Table.ReorderColumns(#"Removed Columns1",{"LineID", "OrderID", "dim_product.product_key", "dim_customer.customer_id", "dim_order_flags.flag_key", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal"}),
+				    #"Merged Queries4" = Table.NestedJoin(#"Reordered Columns4", {"orders.ShipToCity"}, dim_geo, {"city"}, "dim_geo", JoinKind.LeftOuter),
+				    #"Expanded dim_geo" = Table.ExpandTableColumn(#"Merged Queries4", "dim_geo", {"geo_key"}, {"dim_geo.geo_key"}),
+				    #"Merged Queries5" = Table.NestedJoin(#"Expanded dim_geo", {"orders.BillToCity"}, dim_geo, {"city"}, "dim_geo", JoinKind.LeftOuter),
+				    #"Expanded dim_geo1" = Table.ExpandTableColumn(#"Merged Queries5", "dim_geo", {"geo_key"}, {"dim_geo.geo_key.1"}),
+				    #"Renamed Columns" = Table.RenameColumns(#"Expanded dim_geo1",{{"dim_geo.geo_key", "ship_to_city_key"}, {"dim_geo.geo_key.1", "bill_to_city_key"}}),
+				    #"Reordered Columns5" = Table.ReorderColumns(#"Renamed Columns",{"LineID", "OrderID", "dim_product.product_key", "dim_customer.customer_id", "bill_to_city_key", "ship_to_city_key", "dim_order_flags.flag_key", "orders.ShipToCity", "orders.BillToCity", "orders.OrderDate", "Quantity", "UnitPrice", "UnitCost", "DiscountPct", "LineTotal"}),
+				    #"Removed Columns2" = Table.RemoveColumns(#"Reordered Columns5",{"orders.ShipToCity", "orders.BillToCity"}),
+				    #"Renamed Columns1" = Table.RenameColumns(#"Removed Columns2",{{"LineID", "line_id"}, {"OrderID", "order_id"}, {"dim_product.product_key", "product_key"}, {"dim_customer.customer_id", "customer_id"}, {"orders.OrderDate", "order_date"}, {"Quantity", "quantity"}, {"UnitPrice", "price"}, {"UnitCost", "cost"}, {"DiscountPct", "discount"}, {"LineTotal", "line_total"}, {"dim_order_flags.flag_key", "flag_key"}})
+				in
+				    #"Renamed Columns1"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
